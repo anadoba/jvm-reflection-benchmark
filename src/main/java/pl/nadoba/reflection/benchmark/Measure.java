@@ -4,7 +4,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collections;
-import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -12,19 +12,31 @@ public class Measure {
 
     private static TestClass testClass = new TestClass();
 
-    private static long measureBase(Function<TestClass, Boolean> measuredOperations) {
-        long startNanos = System.nanoTime();
-        long endNanos = System.nanoTime();
+    private static synchronized List<Double> measureBase(int amountOfTurns, int amountOfCalls, Function<TestClass, Boolean> measuredOperations) {
 
-        measuredOperations.apply(testClass);
+        List<Double> measurements = new LinkedList<>();
 
-        int numberOfOperations = 5;
-        long timeDifference = endNanos - startNanos;
-        return timeDifference / numberOfOperations;
+        for (int turn = 0; turn < amountOfTurns; turn++) {
+
+            long startNanos = System.nanoTime();
+            for (int call = 0; call < amountOfCalls; call++) {
+                measuredOperations.apply(testClass);
+            }
+            long endNanos = System.nanoTime();
+
+            int numberOfOperations = 5;
+            long timeDifference = endNanos - startNanos;
+
+            double result = ((double) timeDifference / numberOfOperations) / amountOfCalls;
+
+            measurements.add(result);
+        }
+
+        return measurements;
     }
 
-    public static long measurePrimitiveFieldTraditionalAccess() {
-        return measureBase(new Function<TestClass, Boolean>() {
+    public static List<Double> measurePrimitiveFieldTraditionalAccess(int amountOfTurns, int amountOfCalls) {
+        return measureBase(amountOfTurns, amountOfCalls, new Function<TestClass, Boolean>() {
             public Boolean apply(TestClass testClass) {
                 long budget = testClass.budget;
                 double density = testClass.density;
@@ -37,8 +49,8 @@ public class Measure {
         });
     }
 
-    public static long measurePrimitiveFieldReflectionAccess() {
-        return measureBase(new Function<TestClass, Boolean>() {
+    public static List<Double> measurePrimitiveFieldReflectionAccess(int amountOfTurns, int amountOfCalls) {
+        return measureBase(amountOfTurns, amountOfCalls, new Function<TestClass, Boolean>() {
             public Boolean apply(TestClass testClass) {
                 for (Field field : testClass.getClass().getDeclaredFields()) {
                     try {
@@ -54,8 +66,8 @@ public class Measure {
         });
     }
 
-    public static long measureReferenceTraditionalAccess() {
-        return measureBase(new Function<TestClass, Boolean>() {
+    public static List<Double> measureReferenceTraditionalAccess(int amountOfTurns, int amountOfCalls) {
+        return measureBase(amountOfTurns, amountOfCalls, new Function<TestClass, Boolean>() {
             public Boolean apply(TestClass testClass) {
                 TestClass obj = testClass.reference;
                 obj = testClass.reference2;
@@ -68,8 +80,8 @@ public class Measure {
         });
     }
 
-    public static long measureReferencesReflectionAccess() {
-        return measureBase(new Function<TestClass, Boolean>() {
+    public static List<Double> measureReferencesReflectionAccess(int amountOfTurns, int amountOfCalls) {
+        return measureBase(amountOfTurns, amountOfCalls, new Function<TestClass, Boolean>() {
             public Boolean apply(TestClass testClass) {
                 for (Field field : testClass.getClass().getFields()) {
                     try {
@@ -85,8 +97,8 @@ public class Measure {
         });
     }
 
-    public static long measureMethodsTraditionalAccess() {
-        return measureBase(new Function<TestClass, Boolean>() {
+    public static List<Double> measureMethodsTraditionalAccess(int amountOfTurns, int amountOfCalls) {
+        return measureBase(amountOfTurns, amountOfCalls, new Function<TestClass, Boolean>() {
             @Override
             public Boolean apply(TestClass testClass) {
                 Object o = testClass.divideAndMeasure("asdfg");
@@ -100,12 +112,11 @@ public class Measure {
         });
     }
 
-    public static long measureMethodsReflectionAccess() {
-        return measureBase(new Function<TestClass, Boolean>() {
+    public static List<Double> measureMethodsReflectionAccess(int amountOfTurns, int amountOfCalls) {
+        return measureBase(amountOfTurns, amountOfCalls, new Function<TestClass, Boolean>() {
             public Boolean apply(TestClass testClass) {
                 for (Method method : testClass.getClass().getMethods()) {
                     try {
-                        Object o;
                         switch (method.getName()) {
                             case "divideAndMeasure":
                                 method.invoke(testClass, "string to divide");
@@ -132,24 +143,25 @@ public class Measure {
         });
     }
 
-    public static double getMeaningfulAverageFromList(List<Long> measurements) {
+    public static double getMeaningfulAverageFromList(List<Double> measurements) {
 
         Collections.sort(measurements);
 
         int length = measurements.size();
-        int dropSize = length/5;
+        int dropSize = length / 10;
+
         int beginningIndex = dropSize;
         int endingIndex = length - dropSize;
 
-        List<Long> validResults = measurements.subList(beginningIndex, endingIndex);
+        List<Double> validResults = measurements.subList(beginningIndex, endingIndex);
 
         double sum = 0;
 
-        for (Long measurement : validResults) {
+        for (Double measurement : validResults) {
             sum += measurement;
         }
 
-        return sum / measurements.size();
+        return sum / validResults.size();
     }
 
 }
