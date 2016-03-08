@@ -1,6 +1,6 @@
 # jvm-reflection-benchmark
 
-Benchmark project for measuring the reflection performance in Java. 
+Benchmark project for measuring the reflection performance in Java and Scala. 
 It covers 3 matters:
 - accessing primitive fields,
 - accessing references,

@@ -1,7 +1,6 @@
 package pl.nadoba.reflection.benchmark;
 
 import java.util.List;
-
 import static pl.nadoba.reflection.benchmark.Measure.*;
 
 public class App {
